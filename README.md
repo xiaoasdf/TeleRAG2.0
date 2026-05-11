@@ -1,6 +1,8 @@
-# TeleRAG 2.0
+# TeleRAG 2.0: Wireless Communication RAG Assistant
 
-TeleRAG 2.0 是一个面向本地文档问答的 RAG 项目。它可以解析 PDF、Word、Markdown、HTML、TXT 等文档，将内容切分为语义片段，使用 Qwen3 Embedding 构建 FAISS 向量索引，再结合 Reranker 与本地生成模型完成问答，并返回可追溯的引用来源。
+TeleRAG 2.0 是一个面向无线通信资料、标准文档和工程报告的本地知识库问答系统。它可以解析 PDF、Word、Markdown、HTML、TXT 等文档，将内容切分为语义片段，使用 Qwen3 Embedding 构建 FAISS 向量索引，再结合 Reranker 与本地生成模型完成问答，并返回可追溯的引用来源。
+
+项目适合用于调制编码、信道传播、链路预算、通信标准、频谱规划和系统设计资料的检索与问答，帮助把分散的通信论文、标准、教材和仿真报告整理成可交互查询的本地知识库。
 
 项目提供三种使用方式：
 
@@ -17,6 +19,27 @@ TeleRAG 2.0 是一个面向本地文档问答的 RAG 项目。它可以解析 PD
 - 支持 CPU / CUDA 自动设备选择
 - FastAPI 提供健康检查、知识库 CRUD、构建状态和问答接口
 - Next.js 前端默认连接 `http://127.0.0.1:8000`
+
+## 通信领域能力
+
+- 支持通信论文、标准文档、教材章节、链路预算报告和仿真说明文档入库
+- 可用于无线通信概念解释、关键参数对比、标准条款定位和工程设计依据追溯
+- 适合围绕调制方式、信道模型、编码增益、频谱效率、传播损耗和系统架构进行资料问答
+- 答案会尽量基于检索到的上下文生成，并返回来源片段，便于技术报告、方案调研和复习总结引用
+
+## 推荐知识库内容
+
+- 无线通信、移动通信、卫星通信、数字通信原理等教材章节
+- ITU / 3GPP / IEEE 标准文档和技术建议书
+- 卫星通信、移动通信、信道建模、调制编码、OFDM、MIMO 相关论文
+- MATLAB / Python 通信仿真报告、实验记录、链路预算表和系统设计说明
+
+## 简历亮点
+
+- 基于 Qwen3 Embedding + FAISS + Reranker + Qwen3 Generator 搭建本地化 RAG 问答链路
+- 面向无线通信资料的多知识库问答系统，支持文档上传、语义切片、向量检索、重排和引用溯源
+- 同时提供命令行、FastAPI 后端和 Next.js 前端，覆盖从索引构建到交互式问答的完整流程
+- 可作为通信工程知识管理、通信标准检索和技术方案辅助分析工具
 
 ## 项目结构
 
@@ -112,7 +135,15 @@ python ingest.py --docs "data/DVB-S2 .pdf"
 对默认索引提问：
 
 ```bash
-python query.py "DVB-S2 的关键技术有哪些？"
+python query.py "DVB-S2 中调制编码方式如何影响链路性能？"
+```
+
+也可以围绕通用无线通信问题提问：
+
+```bash
+python query.py "无线信道中的路径损耗、阴影衰落和多径衰落有什么区别？"
+python query.py "链路预算通常需要考虑哪些增益和损耗项？"
+python query.py "OFDM 相比单载波通信的优势和代价是什么？"
 ```
 
 输出包含：
@@ -186,7 +217,7 @@ curl.exe -X POST "http://127.0.0.1:8000/knowledge-bases" `
 ```powershell
 curl.exe -X POST "http://127.0.0.1:8000/knowledge-bases/{kb_id}/query" `
   -H "Content-Type: application/json" `
-  -d '{"question":"这份文档主要讲了什么？"}'
+  -d '{"question":"OFDM 相比单载波通信的优势和代价是什么？"}'
 ```
 
 ## 配置说明
@@ -247,4 +278,3 @@ python -m unittest discover -s tests
 ### CPU 推理很慢
 
 这是正常现象。本项目使用本地 Embedding、Reranker 和 Generator 模型，CPU 环境下构建索引和生成答案都可能较慢。可以在有 CUDA 的环境中运行，或调小 `initial_top_k`、`top_k`、`max_context_tokens`。
-
