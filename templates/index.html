@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TeleRAG 知识库</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <p class="eyebrow">TeleRAG</p>
+      <h1>把你的文档整理成本地知识库。</h1>
+      <p class="lede">支持多文件上传、后台构建独立索引，并直接在浏览器中提问。</p>
+    </section>
+
+    <section class="card">
+      <h2>创建知识库</h2>
+      <form id="create-kb-form" class="stack">
+        <label>
+          <span>知识库名称</span>
+          <input type="text" name="name" placeholder="例如：项目资料">
+        </label>
+        <div class="stack">
+          <span class="label-title">待上传文件</span>
+          <div class="row actions">
+            <button type="button" id="pick-files-button" class="secondary">添加文件</button>
+            <span class="muted" id="selected-file-count">还未选择文件</span>
+          </div>
+          <input type="file" id="hidden-file-input" multiple hidden>
+          <div id="selected-file-list" class="file-list pending-list"></div>
+        </div>
+        <button type="submit">上传并构建</button>
+      </form>
+      <p id="create-kb-message" class="message"></p>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <h2>知识库列表</h2>
+        <span class="muted">共 {{ knowledge_bases|length }} 个</span>
+      </div>
+      <div class="kb-list">
+        {% for kb in knowledge_bases %}
+        <article class="kb-item">
+          <a href="/kb/{{ kb.kb_id }}" class="kb-link">
+            <div class="row">
+              <strong>{{ kb.name }}</strong>
+              <span class="status status-{{ kb.status }}">{{ status_labels.get(kb.status, kb.status) }}</span>
+            </div>
+            <p class="muted">{{ kb.kb_id }}</p>
+            <p class="muted">{{ kb.files|length }} 个文件</p>
+          </a>
+          <div class="row actions">
+            <a class="text-link" href="/kb/{{ kb.kb_id }}">进入问答</a>
+            <button type="button" class="danger delete-kb-button" data-kb-id="{{ kb.kb_id }}" data-kb-name="{{ kb.name }}">删除</button>
+          </div>
+        </article>
+        {% else %}
+        <p class="muted">还没有知识库。</p>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

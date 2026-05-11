@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ kb.name }} - TeleRAG 知识库</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body data-kb-id="{{ kb.kb_id }}">
+  <main class="shell">
+    <section class="hero compact">
+      <p class="eyebrow"><a href="/">TeleRAG</a></p>
+      <h1>{{ kb.name }}</h1>
+      <div class="row">
+        <span class="status status-{{ kb.status }}" id="kb-status">{{ status_label }}</span>
+        <span class="muted">{{ kb.kb_id }}</span>
+      </div>
+      {% if kb.error_message %}
+      <p class="error" id="kb-error">{{ kb.error_message }}</p>
+      {% else %}
+      <p class="muted" id="kb-error"></p>
+      {% endif %}
+      <div class="row actions">
+        <a class="text-link" href="/">返回首页</a>
+        <button type="button" class="danger delete-kb-button" data-kb-id="{{ kb.kb_id }}" data-kb-name="{{ kb.name }}">删除当前知识库</button>
+      </div>
+    </section>
+
+    <section class="grid">
+      <section class="card">
+        <h2>文档列表</h2>
+        <ul class="file-list">
+          {% for file in kb.files %}
+          <li>{{ file }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>提问</h2>
+        <form id="query-form" class="stack">
+          <label>
+            <span>问题</span>
+            <textarea name="question" rows="5" placeholder="请输入你想问的问题。" {% if kb.status != "ready" %}disabled{% endif %}></textarea>
+          </label>
+          <button type="submit" {% if kb.status != "ready" %}disabled{% endif %}>开始提问</button>
+        </form>
+        <p id="query-message" class="message">
+          {% if kb.status != "ready" %}
+          当前知识库仍在构建中，页面会自动刷新状态。
+          {% endif %}
+        </p>
+      </section>
+    </section>
+
+    <section class="card">
+      <h2>回答</h2>
+      <div id="answer" class="answer"></div>
+      <div id="thinking" class="thinking"></div>
+    </section>
+
+    <section class="card">
+      <h2>来源</h2>
+      <div id="sources" class="sources"></div>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

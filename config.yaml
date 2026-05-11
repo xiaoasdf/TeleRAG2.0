@@ -1,0 +1,36 @@
+embedder:
+  model_path: "model/Qwen3-Embedding-0.6B"
+  embedding_dim: 1024
+  instruction: "Given a web search query, retrieve relevant passages that answer the query"
+  batch_size: 32
+  device: "auto"
+
+reranker:
+  model_path: "model/Qwen3-Reranker-0.6B"
+  instruction: "Given a web search query, retrieve relevant passages that answer the query"
+  top_k: 10
+  batch_size: 16
+  device: "auto"
+
+generator:
+  model_path: "model/Qwen3-0.6B"
+  enable_thinking: false
+  max_new_tokens: 1024
+  temperature: 0.7
+  top_p: 0.8
+  top_k: 20
+  max_context_tokens: 3000
+  device: "auto"
+
+chunker:
+  breakpoint_percentile: 95
+  min_chunk_size: 32
+
+retriever:
+  index_dir: "index"
+  initial_top_k: 50
+  faiss_index_type: "hnsw"
+  nlist: 0
+  hnsw_m: 16
+  hnsw_ef_construction: 200
+  hnsw_ef_search: 50
