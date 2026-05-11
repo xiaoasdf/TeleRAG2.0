@@ -1,20 +1,21 @@
-# TeleRAG
+# TeleRAG 2.0
 
-TeleRAG 是一个面向本地文档问答的 RAG 项目。它会把 PDF、Word、Markdown、HTML、TXT 等文档解析成语义切片，使用 Qwen3 Embedding 建立 FAISS 向量索引，再通过 Reranker 和本地生成模型回答问题，并返回引用来源。
+TeleRAG 2.0 是一个面向本地文档问答的 RAG 项目。它可以解析 PDF、Word、Markdown、HTML、TXT 等文档，将内容切分为语义片段，使用 Qwen3 Embedding 构建 FAISS 向量索引，再结合 Reranker 与本地生成模型完成问答，并返回可追溯的引用来源。
 
-项目同时提供三种使用方式：
+项目提供三种使用方式：
 
-- 命令行：构建索引并直接提问
-- FastAPI 后端：提供知识库管理、上传、问答 API，并带有简单模板页面
-- Next.js 前端：提供正式的知识库管理和问答界面
+- 命令行：构建默认索引并直接提问
+- FastAPI 后端：提供知识库管理、文件上传、构建状态查询和问答 API
+- Next.js 前端：提供知识库创建、列表管理和问答界面
 
 ## 功能特性
 
-- 支持 `.pdf`、`.docx`、`.md`、`.html`、`.htm`、`.txt` 文档
-- 支持单个默认索引，也支持多知识库隔离索引
-- 使用 Qwen3-Embedding、Qwen3-Reranker、Qwen3 本地模型
+- 支持 `.pdf`、`.docx`、`.md`、`.html`、`.htm`、`.txt` 文档解析
+- 支持单个默认索引，也支持 Web 端多知识库隔离索引
+- 默认使用 Qwen3-Embedding、Qwen3-Reranker、Qwen3 本地模型
 - 使用 FAISS 保存向量索引，默认索引类型为 HNSW
-- FastAPI 提供健康检查、知识库 CRUD、构建状态查询和问答接口
+- 支持 CPU / CUDA 自动设备选择
+- FastAPI 提供健康检查、知识库 CRUD、构建状态和问答接口
 - Next.js 前端默认连接 `http://127.0.0.1:8000`
 
 ## 项目结构
@@ -24,12 +25,10 @@ TeleRAG 是一个面向本地文档问答的 RAG 项目。它会把 PDF、Word�
 ├── app.py                  # FastAPI 应用入口
 ├── ingest.py               # 命令行索引构建入口
 ├── query.py                # 命令行问答入口
-├── config.yaml             # 模型、切块、检索配置
+├── config.yaml             # 模型、切块、检索和生成配置
 ├── requirements.txt        # Python 依赖
 ├── data/                   # 示例或待索引文档
 ├── index/                  # 默认命令行索引输出目录
-├── knowledge_bases/        # Web 上传知识库与独立索引
-├── model/                  # 本地模型目录
 ├── static/                 # FastAPI 模板页面静态资源
 ├── templates/              # FastAPI Jinja2 页面
 ├── tests/                  # 单元测试
@@ -37,19 +36,25 @@ TeleRAG 是一个面向本地文档问答的 RAG 项目。它会把 PDF、Word�
 └── frontend/               # Next.js 前端
 ```
 
+> 说明：`model/`、`knowledge_bases/`、生成后的 FAISS 索引、前端依赖和构建缓存不会提交到 GitHub。模型和知识库数据需要在本地自行准备。
+
 ## 环境要求
 
 - Python 3.10 或更高版本
-- Node.js 18 或更高版本，用于运行 `frontend`
+- Node.js 18 或更高版本，用于运行前端
 - 可选 CUDA GPU；`config.yaml` 中设备默认为 `auto`，会优先使用 CUDA，否则回退到 CPU
-- 本地模型目录需要与 `config.yaml` 中的路径一致：
-  - `model/Qwen3-Embedding-0.6B`
-  - `model/Qwen3-Reranker-0.6B`
-  - `model/Qwen3-0.6B`
+- 本地模型目录需要与 `config.yaml` 中的路径一致
 
-## 安装后端依赖
+## 快速开始
 
-建议先创建虚拟环境：
+### 1. 克隆项目
+
+```bash
+git clone https://github.com/xiaoasdf/TeleRAG2.0.git
+cd TeleRAG2.0
+```
+
+### 2. 安装后端依赖
 
 ```bash
 python -m venv .venv
@@ -59,9 +64,18 @@ python -m pip install -r requirements.txt
 
 当前 `requirements.txt` 默认使用 PyTorch CUDA 12.8 安装源。如果只使用 CPU，可以按自己的环境调整 PyTorch 安装方式后再安装其余依赖。
 
-## 配置说明
+### 3. 准备本地模型
 
-主要配置位于 `config.yaml`：
+将模型放到以下目录，或同步修改 `config.yaml` 中的 `model_path`：
+
+```text
+model/
+├── Qwen3-Embedding-0.6B/
+├── Qwen3-Reranker-0.6B/
+└── Qwen3-0.6B/
+```
+
+对应配置示例：
 
 ```yaml
 embedder:
@@ -79,22 +93,9 @@ generator:
   max_new_tokens: 1024
   max_context_tokens: 3000
   device: "auto"
-
-retriever:
-  index_dir: "index"
-  initial_top_k: 50
-  faiss_index_type: "hnsw"
 ```
 
-常用调整项：
-
-- `device`: 可设为 `auto`、`cpu`、`cuda` 或具体 CUDA 设备
-- `retriever.index_dir`: 命令行模式下的索引保存目录
-- `reranker.top_k`: 最终交给生成模型的候选片段数量
-- `generator.max_context_tokens`: 控制可拼接进提示词的上下文长度
-- `chunker.min_chunk_size`: 过滤过短切片
-
-## 命令行使用
+### 4. 构建索引并提问
 
 构建默认索引：
 
@@ -108,8 +109,6 @@ python ingest.py --docs data
 python ingest.py --docs "data/DVB-S2 .pdf"
 ```
 
-索引会保存到 `config.yaml` 中的 `retriever.index_dir`，默认是 `index/`。
-
 对默认索引提问：
 
 ```bash
@@ -122,7 +121,7 @@ python query.py "DVB-S2 的关键技术有哪些？"
 - `Thinking`: 当模型配置启用思考输出时显示
 - `Sources`: 命中的来源文档、页码、chunk id、得分和片段
 
-## 启动 FastAPI
+## 启动后端
 
 方式一：
 
@@ -142,9 +141,7 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 - `http://127.0.0.1:8000/health`
 - `http://127.0.0.1:8000/docs`
 
-## 启动 Next.js 前端
-
-进入前端目录安装依赖并启动：
+## 启动前端
 
 ```bash
 cd frontend
@@ -158,10 +155,9 @@ npm run dev
 http://127.0.0.1:3000
 ```
 
-默认 API 地址是 `http://127.0.0.1:8000`。如需修改，设置环境变量：
+默认 API 地址是 `http://127.0.0.1:8000`。如需修改，创建 `frontend/.env.local`：
 
 ```text
-# frontend/.env.local
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
 ```
 
@@ -192,6 +188,20 @@ curl.exe -X POST "http://127.0.0.1:8000/knowledge-bases/{kb_id}/query" `
   -H "Content-Type: application/json" `
   -d '{"question":"这份文档主要讲了什么？"}'
 ```
+
+## 配置说明
+
+主要配置位于 `config.yaml`。
+
+常用调整项：
+
+- `device`: 可设为 `auto`、`cpu`、`cuda` 或具体 CUDA 设备
+- `retriever.index_dir`: 命令行模式下的索引保存目录
+- `retriever.initial_top_k`: 初始向量检索召回数量
+- `retriever.faiss_index_type`: FAISS 索引类型，默认 `hnsw`
+- `reranker.top_k`: 最终交给生成模型的候选片段数量
+- `generator.max_context_tokens`: 控制可拼接进提示词的上下文长度
+- `chunker.min_chunk_size`: 过滤过短切片
 
 ## 知识库数据
 
@@ -232,8 +242,9 @@ python -m unittest discover -s tests
 
 ### 前端请求失败
 
-先确认 FastAPI 已在 `http://127.0.0.1:8000` 启动，再检查 `frontend` 的 `NEXT_PUBLIC_API_BASE_URL` 是否正确。
+先确认 FastAPI 已在 `http://127.0.0.1:8000` 启动，再检查 `frontend/.env.local` 中的 `NEXT_PUBLIC_API_BASE_URL` 是否正确。
 
 ### CPU 推理很慢
 
-这是正常现象。本项目使用本地 Embedding、Reranker 和 Generator 模型，CPU 环境下构建索引和生成答案都可能较慢。可在有 CUDA 的环境中运行，或调小 `initial_top_k`、`top_k`、`max_context_tokens`。
+这是正常现象。本项目使用本地 Embedding、Reranker 和 Generator 模型，CPU 环境下构建索引和生成答案都可能较慢。可以在有 CUDA 的环境中运行，或调小 `initial_top_k`、`top_k`、`max_context_tokens`。
+
